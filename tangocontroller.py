@@ -41,12 +41,39 @@ NEW CODE
 from tkinter import *
 import serial, time, sys
 
+# waist = 0
+# wheels forward = 1
+# wheels turn = ?
+# head horizontal = 3
+# head vertical = 4
 
 class TangoController:
 
     def __init__(self, window):
         self.window = window
+        self.waist = 6000
+        self.head_vert = 6000
+        self.head_horiz = 6000
+        self.motor_forward = 6000
+        self.motor_turn = 6000
+        
 
+        try:
+            self.usb = serial.Serial('/dev/ttyACM0')
+            print(self.usb.name)
+            print(self.usb.baudrate)
+
+        except:
+            try:
+                self.usb = serial.Serial('/dev/ttyACM1')
+                print(self.usb.name)
+                print(self.usb.baudrate)
+            except:
+                print("No servo serial port")
+                sys.exit(0)
+
+    # Might not be needed
+    def reset_servos(self):
         self.waist = 6000
         self.head_vert = 6000
         self.head_horiz = 6000
@@ -57,9 +84,15 @@ class TangoController:
         self.motor_forward += 500
         print(self.motor_forward)
 
+        servo = 1
+        self.usb_write(servo, self.waist)
+
     def backward(self, event):
         self.motor_forward -= 500
         print(self.motor_forward)
+
+        servo = 1
+        self.usb_write(servo, self.waist)
 
     def turn_right(self, event):
         self.motor_turn += 500
@@ -73,38 +106,72 @@ class TangoController:
         self.head_vert += 500
         print(self.head_vert)
 
+        servo = 4
+        self.usb_write(servo, self.waist)
+
     def head_down(self, event):
         self.head_vert -= 500
         print(self.head_vert)
+
+        servo = 4
+        self.usb_write(servo, self.waist)
 
     def head_left(self, event):
         self.head_horiz += 500
         print(self.head_horiz)
 
+        servo = 3
+        self.usb_write(servo, self.waist)
+
     def head_right(self, event):
         self.head_horiz -= 500
         print(self.head_horiz)
+
+        servo = 3
+        self.usb_write(servo, self.waist)
 
     def waist_left(self, event):
         self.waist += 500
         print(self.waist)
 
+        servo = 0
+        self.usb_write(servo, self.waist)
+
     def waist_right(self, event):
         self.waist -= 500
         print(self.waist)
+        
+        servo = 0
+        self.usb_write(servo, self.waist)
+
+    def usb_write(self, servo, target):
+        target = 6000
+        lsb = target & 0x7F
+        msb = (target >> 7) & 0x7F
+
+        cmd = chr(0xaa) + chr(0xC) + chr(0x04) + chr(0x0 + servo) + chr(lsb) + chr(msb)
+
+        print("writing")
+        self.usb.write(cmd.encode())
+        print("reading")
+
 
 win = Tk()
+# New instance of TangoController
 controller = TangoController(win)
 
+# Robot moving and turning
 win.bind('<Up>', controller.forward)
 win.bind('<Down>', controller.backward)
 win.bind('<Left>', controller.turn_left)
 win.bind('<Right>', controller.turn_right)
 
+# Robot head and waist movement
 win.bind('<Key-w>', controller.head_up)
 win.bind('<Key-s>', controller.head_down)
 win.bind('<Key-a>', controller.head_left)
 win.bind('<Key-d>', controller.head_right)
+win.bind('<Key-q>', controller.waist_left)
+win.bind('<Key-e>', controller.waist_right)
 
 win.mainloop()
-
