@@ -40,12 +40,14 @@ NEW CODE
 
 from tkinter import *
 import serial, time, sys
+#from Maestro import Controller
 
 # waist = 0
 # wheels forward = 1
 # wheels turn = ?
 # head horizontal = 3
 # head vertical = 4
+
 
 class TangoController:
 
@@ -56,7 +58,7 @@ class TangoController:
         self.head_horiz = 6000
         self.motor_forward = 6000
         self.motor_turn = 6000
-        
+
 
         try:
             self.usb = serial.Serial('/dev/ttyACM0')
@@ -71,6 +73,8 @@ class TangoController:
             except:
                 print("No servo serial port")
                 sys.exit(0)
+                
+        self.reset_servos()
 
     # Might not be needed
     def reset_servos(self):
@@ -79,6 +83,13 @@ class TangoController:
         self.head_horiz = 6000
         self.motor_forward = 6000
         self.motor_turn = 6000
+
+        self.usb_write(0, self.waist)
+        self.usb_write(1, self.waist)
+        self.usb_write(2, self.waist)
+        self.usb_write(3, self.waist)
+        self.usb_write(4, self.waist)
+
 
     def forward(self, event):
         self.motor_forward += 500
@@ -117,43 +128,42 @@ class TangoController:
         self.usb_write(servo, self.waist)
 
     def head_left(self, event):
+        self.head_horiz -= 500
+        print(self.head_horiz)
+        
+        self.usb_write(3, self.waist)
+
+    def head_right(self, event):
         self.head_horiz += 500
         print(self.head_horiz)
 
-        servo = 3
-        self.usb_write(servo, self.waist)
-
-    def head_right(self, event):
-        self.head_horiz -= 500
-        print(self.head_horiz)
-
-        servo = 3
-        self.usb_write(servo, self.waist)
+        self.usb_write(3, self.waist)
 
     def waist_left(self, event):
+        self.waist -= 500
+        print(self.waist)
+
+        self.usb_write(0, self.waist)
+
+    def waist_right(self, event):
         self.waist += 500
         print(self.waist)
 
-        servo = 0
-        self.usb_write(servo, self.waist)
-
-    def waist_right(self, event):
-        self.waist -= 500
-        print(self.waist)
-        
-        servo = 0
-        self.usb_write(servo, self.waist)
+        self.usb_write(0, self.waist)
 
     def usb_write(self, servo, target):
-        target = 6000
+        # Test Center Value
+        #target = 6500
         lsb = target & 0x7F
         msb = (target >> 7) & 0x7F
 
         cmd = chr(0xaa) + chr(0xC) + chr(0x04) + chr(0x0 + servo) + chr(lsb) + chr(msb)
 
         print("writing")
-        self.usb.write(cmd.encode())
-        print("reading")
+        self.usb.write(cmd.encode('utf-8'))
+        #print("reading")
+
+    # When calling a new function set all servos back to center
 
 
 win = Tk()
