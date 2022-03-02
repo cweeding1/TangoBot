@@ -34,8 +34,7 @@ class TangoController:
                 sys.exit(0)
 
         self.reset_servos()
-
-    # Might not be needed
+        
     def reset_servos(self):
         self.usb_write(0, self.waist)
         self.usb_write(1, self.motor_forward)
