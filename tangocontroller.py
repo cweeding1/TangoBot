@@ -1,50 +1,9 @@
-import serial, time, sys
-
-class TangoController:
-
-    def __init__(self):
-        pass
-
-
-def main():
-    pass
-
-try:
-    usb = serial.Serial('/dev/ttyACM0')
-    print(usb.name)
-    print(usb.baudrate)
-
-except:
-    try:
-        usb = serial.Serial('/dev/ttyACM1')
-        print(usb.name)
-        print(usb.baudrate)
-    except:
-        print("No servo serial port")
-        sys.exit(0)
-
-target = 4500 #6700
-
-lsb = target &0x7F
-msb = (target >> 7) &0x7F
-
-cmd = chr(0xaa) + chr(0xC) + chr(0x04) + chr(0x02) + chr(lsb) + chr(msb)
-
-print("writing")
-usb.write(cmd.encode())
-print("reading")
-
-"""
-NEW CODE
-"""
-
 from tkinter import *
 import serial, time, sys
-#from Maestro import Controller
 
 # waist = 0
 # wheels forward = 1
-# wheels turn = ?
+# wheels turn = 2
 # head horizontal = 3
 # head vertical = 4
 
@@ -73,87 +32,88 @@ class TangoController:
             except:
                 print("No servo serial port")
                 sys.exit(0)
-                
+
         self.reset_servos()
 
     # Might not be needed
     def reset_servos(self):
-        self.waist = 6000
-        self.head_vert = 6000
-        self.head_horiz = 6000
-        self.motor_forward = 6000
-        self.motor_turn = 6000
-
         self.usb_write(0, self.waist)
-        self.usb_write(1, self.waist)
-        self.usb_write(2, self.waist)
-        self.usb_write(3, self.waist)
-        self.usb_write(4, self.waist)
-
+        self.usb_write(1, self.motor_forward)
+        self.usb_write(2, self.motor_turn)
+        self.usb_write(3, self.head_horiz)
+        self.usb_write(4, self.head_vert)
 
     def forward(self, event):
-        self.motor_forward += 500
-        print(self.motor_forward)
-
-        servo = 1
-        self.usb_write(servo, self.waist)
+        if self.motor_forward < 9000:
+            self.motor_forward += 500
+            self.usb_write(1, self.motor_forward)
 
     def backward(self, event):
-        self.motor_forward -= 500
-        print(self.motor_forward)
-
-        servo = 1
-        self.usb_write(servo, self.waist)
+        if self.motor_forward > 4000:
+            self.motor_forward -= 500
+            self.usb_write(1, self.motor_forward)
 
     def turn_right(self, event):
-        self.motor_turn += 500
-        print(self.motor_turn)
+        if self.motor_turn < 9000:
+            self.motor_turn += 500
+            self.usb_write(2, self.motor_turn)
 
     def turn_left(self, event):
-        self.motor_turn -= 500
-        print(self.motor_turn)
+        if self.motor_turn > 4000:
+            self.motor_turn -= 500
+            self.usb_write(2, self.motor_turn)
 
     def head_up(self, event):
-        self.head_vert += 500
-        print(self.head_vert)
-
-        servo = 4
-        self.usb_write(servo, self.waist)
+        if self.head_vert < 9000:
+            self.head_vert += 500
+            self.usb_write(4, self.head_vert)
 
     def head_down(self, event):
-        self.head_vert -= 500
-        print(self.head_vert)
-
-        servo = 4
-        self.usb_write(servo, self.waist)
+        if self.head_vert > 4000:
+            self.head_vert -= 500
+            self.usb_write(4, self.head_vert)
 
     def head_left(self, event):
-        self.head_horiz -= 500
-        print(self.head_horiz)
-        
-        self.usb_write(3, self.waist)
+        if self.head_horiz > 4000:
+            self.head_horiz -= 500
+            self.usb_write(3, self.head_horiz)
 
     def head_right(self, event):
-        self.head_horiz += 500
-        print(self.head_horiz)
-
-        self.usb_write(3, self.waist)
+        if self.head_horiz < 9000:
+            self.head_horiz += 500
+            self.usb_write(3, self.head_horiz)
 
     def waist_left(self, event):
         self.waist -= 500
-        print(self.waist)
-
         self.usb_write(0, self.waist)
 
     def waist_right(self, event):
         self.waist += 500
-        print(self.waist)
-
         self.usb_write(0, self.waist)
 
+    def stop(self):
+        # stop the robot slowly
+        diff = (self.motor_forward - 6000)/5
+
+        if self.motor_forward > 0:
+            for i in range(5):
+                self.motor_forward -= abs(diff)
+                self.usb.write(1, self.motor_forward)
+                time.sleep(1)
+
+        elif self.motor_forward < 0:
+            for i in range(5):
+                self.motor_forward += abs(diff)
+                self.usb.write(1, self.motor_forward)
+                time.sleep(1)
+
+        self.motor_forward += 500
+        print(self.motor_forward)
+
+        self.usb_write(1, self.motor_forward)
+
     def usb_write(self, servo, target):
-        # Test Center Value
-        #target = 6500
+
         lsb = target & 0x7F
         msb = (target >> 7) & 0x7F
 
@@ -161,9 +121,6 @@ class TangoController:
 
         print("writing")
         self.usb.write(cmd.encode('utf-8'))
-        #print("reading")
-
-    # When calling a new function set all servos back to center
 
 
 win = Tk()
@@ -184,4 +141,8 @@ win.bind('<Key-d>', controller.head_right)
 win.bind('<Key-q>', controller.waist_left)
 win.bind('<Key-e>', controller.waist_right)
 
+# Stop function that slows the robot down
+win.bind('<Space>', controller.stop)
+
 win.mainloop()
+
